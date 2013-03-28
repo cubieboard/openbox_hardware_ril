@@ -109,11 +109,24 @@ int main(int argc, char **argv)
 
     int i;
 
+    if (rilLibPath == NULL) {
+        if ( 0 == property_get(LIB_PATH_PROPERTY, libPath, NULL)) {
+            // No lib sepcified on the command line, and nothing set in props.
+            // Assume "no-ril" case.
+            // goto done;		// 
+        } else {
+            rilLibPath = libPath;
+        }
+    }
+
     umask(S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
     for (i = 1; i < argc ;) {
         if (0 == strcmp(argv[i], "-l") && (argc - i > 1)) {
-            rilLibPath = argv[i + 1];
-            i += 2;
+			if (rilLibPath == NULL)
+			{
+	            rilLibPath = argv[i + 1];
+			}
+	        i += 2;
         } else if (0 == strcmp(argv[i], "--")) {
             i++;
             hasLibArgs = 1;
@@ -123,18 +136,14 @@ int main(int argc, char **argv)
         }
     }
 
-    if (rilLibPath == NULL) {
-        if ( 0 == property_get(LIB_PATH_PROPERTY, libPath, NULL)) {
-            // No lib sepcified on the command line, and nothing set in props.
-            // Assume "no-ril" case.
-            goto done;
-        } else {
-            rilLibPath = libPath;
-        }
-    }
+	if (rilLibPath == NULL)
+	{
+		LOGW("get no ril library path");
+		goto done;		// "no-ril" case
+	}
 
     /* special override when in the emulator */
-#if 1
+#if 0 //ignore this by allwinner
     {
         static char*  arg_overrides[3];
         static char   arg_device[32];
@@ -240,12 +249,13 @@ int main(int argc, char **argv)
     }
 OpenLib:
 #endif
-    switchUser();
+ //   switchUser();
 
     dlHandle = dlopen(rilLibPath, RTLD_NOW);
 
     if (dlHandle == NULL) {
         fprintf(stderr, "dlopen failed: %s\n", dlerror());
+        LOGE("dlopen failed: %s\n", dlerror());
         exit(-1);
     }
 
